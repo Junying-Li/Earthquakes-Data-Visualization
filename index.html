@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Interactive Visualization (Two Menus) - Earthquake Data</title>
+    <style>
+      body {
+        text-align: center;
+        font-size: 1em;
+      }
+      .container {
+        float: left;
+      }
+      .menucontainer {
+        font-size: 1em;
+      }
+      div.tooltip {
+        position: absolute;
+        text-align: center;
+        width: 60px;
+        padding: 2px;
+        font: 12px sans-serif;
+        background: white;
+        border: solid;
+        border-width: 1px;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+    </style>
+    <script src="https://unpkg.com/d3@7.0.1/dist/d3.min.js"></script>
+  </head>
+  <h3>Earthquake Data Visualization</h3>
+  Start year: &nbsp
+  <select id="selectLowerButton"></select>
+  &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp
+  End year: &nbsp
+  <select id="selectHigherButton"></select>
+	<div id="BarPlot"></div>
+  <div id="WorldMap"></div>
+  <div id="MapLegend"></div>
+  <script>
+  const margin = {top: 50, right: 30, bottom: 50, left: 70},
+    width = 462 - margin.left - margin.right,
+    height = 390 - margin.top - margin.bottom;
+    
+  const xAxisLabel = 'Region';
+  const yAxisLable = 'Total Deaths';
+
+  const group = ["1900", "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1990", "1999"];
+
+  const lowerMenu = d3.select("#selectLowerButton")
+      .selectAll('myOptions')
+     	.data(group)
+      .enter()
+    	.append('option')
+      .text(d => d) // text showed in the menu
+      .attr("value", d => d) // corresponding value returned by the button
+      .attr("class", "menucontainer")
+	
+  // default select 1920 for higher bound
+  const defaultOptionName = "1920";
+  const higherMenu = d3.select("#selectHigherButton")
+      .selectAll('myOptions')
+     	.data(group)
+      .enter()
+    	.append('option')
+      .text((d) => d) // text showed in the menu
+      .attr("value", (d) => d) // corresponding value returned by the button
+      .attr("class", "menucontainer")
+      .property("selected", d => d === defaultOptionName)
+
+  const bars = d3.select("#BarPlot")
+    .append("svg")
+    .attr("class", "container")
+  	.attr("id", "bar-plot")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  bars.append("text")
+      .attr("class", "x label")
+      .attr("text-anchor", "end")
+      .attr("x", width + 30)
+      .attr("y", height + 30)
+      .style("font-size", "15px")
+      .text(xAxisLabel);
+
+  bars.append("text")
+      .attr("class", "y label")
+      .attr("text-anchor", "end")
+      .attr("y", -30)
+      .attr("dy", "-0.8em")
+      .attr("transform", "rotate(-90)")
+      .style("font-size", "15px")
+      .text(yAxisLable);
+  
+    // Initialize the X axis
+  const x = d3.scaleBand()
+    .range([ 10, width-10 ])
+    .padding(0.2);
+  const xAxis = bars.append("g")
+    .attr("transform", `translate(0,${height})`)
+
+  // Initialize the Y axis
+  const y = d3.scaleLinear()
+    .range([ height, 0]);
+  const yAxis = bars.append("g")
+    .attr("transform", "translate(10,0)")
+  
+  
+ const worldmap = d3.select("#WorldMap")
+    .append("svg")
+ 		.attr("class", "container")
+    .attr("id", "world-map")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const projection = d3.geoMercator()
+    .center([5, 40])                // GPS of location to zoom on
+    .scale(70)                       // This is like the zoom
+    .translate([ width/2, height/2 ])   
+  
+  // create tooltip
+  const tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);   
+  
+	// Draw map
+  d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson").then( function(topodata) { 
+     const p = worldmap.selectAll("path")
+    .data(topodata.features);
+
+     p
+    .join("path")
+      .attr("fill", "#b8b8b8")
+      .attr("d", d3.geoPath()
+          .projection(projection)
+      )
+    .style("fill", "teal")
+    .style("stroke", "black")
+    .style("opacity", .4)  
+    .on("mouseover", function(event,d) {
+     // console.log(d.properties.name);
+     tooltip.transition()
+       .duration(200)
+       .style("opacity", .9);
+     tooltip.html(d.properties.name)
+       .style("left", (event.pageX - 40) + "px")
+       .style("top", (event.pageY - 30) + "px");
+     d3.select(this)
+        .style("stroke", "black")
+        .style("opacity", 1)
+     })
+   .on("mouseout", function(d) {
+     tooltip.transition()
+       .duration(500)
+       .style("opacity", 0);
+     d3.select(this)
+        .style("stroke", "black")
+        .style("opacity", 0.4)
+     });
+  })
+
+  // Add legend: circles
+  const valuesToShow = [5, 7, 10]
+  const xCircle = 0
+  const xLabel = 20
+  const yCircle = 320
+
+  // Add legend: segments
+  worldmap
+    .selectAll("legend")
+    .data(valuesToShow)
+    .join("line")
+      .attr('x1', d => xCircle + d*1.5 - 5)
+      .attr('x2', d => xLabel + d*4 - 15)
+      .attr('y1', d => yCircle - d*1.5 + 5)
+      .attr('y2', d => yCircle - d*1.5 + 5)
+      .attr('stroke', 'black')
+      .style('stroke-dasharray', ('2,2'))
+
+  // Add legend: labels
+  worldmap
+    .selectAll("legend")
+    .data(valuesToShow)
+    .join("text")
+      .attr('x', d => xLabel + d*4 - 14)
+      .attr('y', d => yCircle - d*1.5 + 5 + 1)
+      .text( d => d)
+      .style("font-size", 6)
+      .attr('alignment-baseline', 'middle')
+
+  worldmap
+    .append("text")
+      .data(valuesToShow)
+      .attr("x", xCircle - 15)
+      .attr("y", yCircle - 30)
+      .attr("dy", ".35em")
+      .text("Richter")
+      .style("font-size", 10)
+      
+// data url
+  const csvUrl = "https://gist.githubusercontent.com/Junying-Li/72ef4641efd6b4abf371f5d9f4267a56/raw/091169434e3d7bea5d1545a916bf3cf0be33ffbf/earthquakesWithLatLon.csv";
+
+  function update(selectedLower, selectedHigher) {
+    // console.log(selectedLower + ", " + selectedHigher);	
+    d3.csv(csvUrl).then(function (data) {
+        data = d3.filter(data, d => d.year >= selectedLower & d.year <= selectedHigher);
+      console.log(data);
+        const nest = [];
+        const keys = ["Guatemala","Russia","Turkey","India","Ecuador","Taiwan","United States","Chile","Asia", "Italy", "Iran", "China","Japan","Nicaragua","Armenia-Azerbaijan", "India-Nepal","Pakistan", "Romania", "Argentina","Peru","Turkmenistan","Tajikistan", "Algeria","Afghanistan","Morocco", "Yugoslavia","New Guinea","Philippines","Iran-Turkey", "Mexico","El Salvador","Colombia-Ecuador","Armenia", "Pakistan-Afghanistan","Indonesia", "Colombia","Afghanistan-Tajikistan"];
+        keys.forEach((d) => {
+          const s = d3.sum (data.filter(data => data.region === d), (e) => e.deaths); 
+          //create an object with this key value pair
+          const obj = {
+            region: d, //region
+            totaldeaths: s //sum for deaths
+          }
+          if (obj.totaldeaths > 0) {        
+            nest.push(obj); //push this as an object in the nest array
+          }
+        })  
+        nest.sort((a, b) => (b.totaldeaths - a.totaldeaths));
+
+        x.domain(nest.map(d => d.region))
+        xAxis.call(d3.axisBottom(x))
+        .selectAll("text")
+        .attr("transform", "translate(-10,0)rotate(-45)")
+        .style("text-anchor", "end")
+        .style("font-size", "9px");
+
+        y.domain([0, d3.max(nest, d => d.totaldeaths) * 1.1]);
+        yAxis.transition().duration(1000).call(d3.axisLeft(y));
+
+        const u = bars.selectAll("rect")
+          .data(nest);
+				const c = worldmap.selectAll("circle")
+          .data(data);
+
+       // update bar plot
+        u.join("rect") 
+          .transition() 
+          .duration(1000)
+            .attr("x", d => x(d.region))
+            .attr("y", d => y(d.totaldeaths))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d.totaldeaths))
+            .attr("fill", "steelblue")
+            .attr("opacity", 0.8)     
+        
+      // update circles in map
+        c.join("circle")
+					.transition() 
+          .duration(1000)
+            .attr("cx", d => projection([d.lon, d.lat])[0])
+            .attr("cy", d => projection([d.lon, d.lat])[1])
+            .attr("r", d => d.richter * 1.5 - 5)
+            .style("fill", "rgb(104 4 11)")
+            .attr("stroke", "rgb(104 4 11)")
+            .attr("stroke-width", 1)
+            .attr("fill-opacity", .4)     
+      
+      // draw legend
+        worldmap
+          .selectAll("legend")
+          .data(valuesToShow)
+          .join("circle")
+            .attr("cx", xCircle)
+            .attr("cy", d => yCircle - d * 1.5 + 5)
+            .attr("r", d => d * 1.5 - 5)
+            .style("fill", "none")
+            .attr("stroke", "black")
+    	})   
+	}
+
+// Initialize to show 1900-1910 data
+	update("1900", "1920");
+// Initial value of lowerbound and higherbound
+    let selectedLower = 1900;
+    let selectedHigher = 1910;
+// Select new lowerbound and update
+  d3.select("#selectLowerButton").on("change", function(event,d) {
+    selectedLower = d3.select(this).property("value");  
+    // console.log(selectedLower);
+    update(selectedLower, selectedHigher);
+    
+  })
+// Select new higherbound and update
+  d3.select("#selectHigherButton").on("change", function(event,d) {
+    selectedHigher = d3.select(this).property("value");
+    // console.log(selectedHigher);
+    update(selectedLower, selectedHigher);
+  })
+  </script>
+</html>

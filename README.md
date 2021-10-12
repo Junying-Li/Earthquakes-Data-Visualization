@@ -6,3 +6,10 @@ This Project is hosted on VizHub. Play it by yourself! Here's the link: [Earthqu
 ## Screenshots
 
 ![overview](pic/overview.png)
+*FIgure-1 Overview*
+
+![dropdpwn](pic/dropdown.png)
+*Figure-2 Drop-down Menus*
+
+![tooltip](pic/tooltips.png)
+*Figure-3 Tooltips*

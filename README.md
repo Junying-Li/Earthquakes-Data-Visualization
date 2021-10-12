@@ -5,4 +5,4 @@ This Project is hosted on VizHub. Play it by yourself! Here's the link: [Earthqu
 
 ## Screenshots
 
-[!pic](pic/overview.png)
+![overview](pic/overview.png)
